@@ -1,6 +1,6 @@
 {
   "name": "reddit-lurker",
-  "version": "7.6.2",
+  "version": "7.6.3",
   "description": "A simple Reddit client for lurking.",
   "main": "index.html",
   "private": true,

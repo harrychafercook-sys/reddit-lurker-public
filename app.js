@@ -103,7 +103,7 @@ function CredentialsModal({ onSave, onClose, initialClientId = '', initialSecret
     const [rapidApiKey, setRapidApiKey] = useState(initialRapidApiKey);
 
     const handleSave = () => {
-        if (clientId.trim() && secret.trim() && rapidApiKey.trim()) {
+        if (clientId.trim() && secret.trim()) {
             onSave(clientId.trim(), secret.trim(), rapidApiKey.trim());
         }
     };
@@ -113,7 +113,7 @@ function CredentialsModal({ onSave, onClose, initialClientId = '', initialSecret
             <div className="bg-slate-800 text-white rounded-lg shadow-xl p-6 w-full max-w-sm m-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-2xl font-bold mb-4">API Credentials</h2>
                 <details className="mb-4"><summary className="cursor-pointer text-blue-300">Display zoom</summary><ZoomSettings /></details>
-                <p className="text-gray-400 mb-6">Enter your Reddit app's Client ID and Secret, and your RapidAPI Key. These will be stored in your browser's local storage.</p>
+                <p className="text-gray-400 mb-6">Enter your Reddit app's Client ID and Secret. A RapidAPI key is optional and enables Txtify. These will be stored in your browser's local storage.</p>
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Reddit Client ID</label>
@@ -124,13 +124,13 @@ function CredentialsModal({ onSave, onClose, initialClientId = '', initialSecret
                         <input type="password" id="secret" value={secret} onChange={(e) => setSecret(e.target.value)} className="mt-1 block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
                     </div>
                     <div>
-                        <label htmlFor="rapidApiKey" className="block text-sm font-medium text-gray-300">RapidAPI Key</label>
+                        <label htmlFor="rapidApiKey" className="block text-sm font-medium text-gray-300">RapidAPI Key (optional)</label>
                         <input type="password" id="rapidApiKey" value={rapidApiKey} onChange={(e) => setRapidApiKey(e.target.value)} className="mt-1 block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
                     </div>
                 </div>
                 <div className="mt-8 flex justify-end space-x-4">
                     <button onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-md transition-colors">Cancel</button>
-                    <button onClick={handleSave} disabled={!clientId.trim() || !secret.trim() || !rapidApiKey.trim()} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-md transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">Save</button>
+                    <button onClick={handleSave} disabled={!clientId.trim() || !secret.trim()} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-md transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">Save</button>
                 </div>
             </div>
         </div>
@@ -778,6 +778,7 @@ function MediaViewer({ items, startIndex, onClose, animationState, onAnimationEn
 }
 function LinkActionDropdown({ url, onTxtify, onClose, onContentClick }) {
     const dropdownRef = useRef(null);
+    const canTxtify = !!localStorage.getItem('rapidApiKey')?.trim();
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -799,6 +800,7 @@ function LinkActionDropdown({ url, onTxtify, onClose, onContentClick }) {
 
     const handleTxtifyClick = (e) => {
         e.stopPropagation();
+        if (!canTxtify) return;
         onTxtify(url);
         onClose();
     };
@@ -812,11 +814,11 @@ function LinkActionDropdown({ url, onTxtify, onClose, onContentClick }) {
                         Original Link
                     </button>
                 </li>
-                <li>
+                {canTxtify && <li>
                     <button onClick={handleTxtifyClick} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-slate-600">
                         Txtify Article
                     </button>
-                </li>
+                </li>}
             </ul>
         </div>
     );
@@ -1198,7 +1200,8 @@ function App() {
     const handleSaveCredentials = (id, s, rapidKey) => {
         localStorage.setItem('redditClientId', id);
         localStorage.setItem('redditSecret', s);
-        localStorage.setItem('rapidApiKey', rapidKey);
+        if (rapidKey.trim()) localStorage.setItem('rapidApiKey', rapidKey.trim());
+        else localStorage.removeItem('rapidApiKey');
         setIsCredentialsModalOpen(false);
         setShowCredentialsModal(false);
         fetchThreads(currentSubreddit);
@@ -1213,13 +1216,7 @@ function App() {
             return;
         }
 
-        const rapidApiKey = localStorage.getItem('rapidApiKey');
-        if (!rapidApiKey) {
-            setError('RapidAPI Key not found. Please enter it in the credentials modal.');
-            setIsCredentialsModalOpen(true);
-            setIsCaching(false);
-            return;
-        }
+        const rapidApiKey = localStorage.getItem('rapidApiKey')?.trim();
 
         const highlightedArray = Array.from(highlightedThreads);
         const downloaded = new Set();
@@ -1262,7 +1259,7 @@ function App() {
                 await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
 
                 // 2. Txtify and cache article
-                if (thread.url && !thread.isSelf) {
+                if (rapidApiKey && thread.url && !thread.isSelf) {
                     try {
                         const extracted = await extractArticle(thread.url, rapidApiKey);
                         setCachedData(`article_${thread.url}`, extracted);
@@ -1442,6 +1439,7 @@ function App() {
     };
 
     const handleTxtifyArticle = (url) => {
+        if (!localStorage.getItem('rapidApiKey')?.trim()) return;
         setViewingArticle(url);
         setArticleAnimationState('animating-in');
         window.history.pushState({ view: 'article' }, '', '#article');

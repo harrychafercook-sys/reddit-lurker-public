@@ -4,7 +4,7 @@ A personal, read-only Reddit reader with an installable web app and an Android
 WebView wrapper. It displays public subreddit feeds, posts, comments and linked
 media, with sorting, favourites and bounded offline caches.
 
-This repository began as a fresh source snapshot and now includes version 7.6.1. It contains no
+This repository began as a fresh source snapshot and now includes version 7.6.3. It contains no
 private development history, account settings, deployment credentials or
 site-specific SSH deployment scripts.
 
@@ -26,8 +26,11 @@ suitable PHP executable before starting the preview.
 
 ## Credentials and API access
 
-Enter your own Reddit client ID and client secret, and your own RapidAPI
-article-extractor2 key, directly into the app. The app stores these in local
+Enter your own Reddit client ID and client secret directly into the app. A
+RapidAPI article-extractor2 key is optional: without a nonblank saved key,
+Txtify is hidden in feed and post menus, while browsing and comment caching
+remain available. Adding a key enables Txtify; clearing its field removes it.
+The app stores credentials in local
 browser storage; they are not supplied by this repository or its build.
 Never commit account settings, API credentials, SSH keys or signing keys.
 

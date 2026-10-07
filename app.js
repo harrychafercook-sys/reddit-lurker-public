@@ -25,6 +25,7 @@ import { readZoom, applyZoom, normalizeZoom, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } fro
 import ZoomableImage from './zoomable-image.js';
 import { extractArticle } from './article-extractor.js';
 import MediaActions from './media-actions.js';
+import { checkAndroidUpdates } from './native-media.js';
 
 const dataCache = createDataCache(localStorage);
 dataCache.prune();
@@ -343,6 +344,12 @@ function MoreOptionsMenu({ isOpen, onClose, onClearCache, onCredentials }) {
             <div className="bg-slate-800 text-white rounded-lg shadow-xl p-2 w-full max-w-xs m-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
                 <ZoomSettings />
                 <ul className="space-y-1">
+                    {window.__REDDIT_LURKER_NATIVE__ && <li>
+                        <button onClick={() => {
+                            onClose();
+                            checkAndroidUpdates().catch(() => window.alert('The Android update check is unavailable. Close and reopen the app, then try again.'));
+                        }} className="w-full text-left px-4 py-2 rounded-md hover:bg-slate-700 transition-colors">Check for updates</button>
+                    </li>}
                     <li>
                         <button onClick={onClearCache} className="w-full text-left px-4 py-2 rounded-md hover:bg-slate-700 transition-colors">Clear Cache</button>
                     </li>
@@ -350,6 +357,7 @@ function MoreOptionsMenu({ isOpen, onClose, onClearCache, onCredentials }) {
                         <button onClick={onCredentials} className="w-full text-left px-4 py-2 rounded-md hover:bg-slate-700 transition-colors">Credentials</button>
                     </li>
                 </ul>
+                <p className="border-t border-slate-700 mx-4 mt-2 pt-3 pb-2 text-sm text-gray-400">Version {APP_VERSION}</p>
             </div>
         </div>
     );

@@ -28,6 +28,7 @@ public final class MediaBridge {
     private static final Uri ORIGIN = Uri.parse("https://rlurker.english-grammar-homework.com");
     private final Activity activity;
     private final WebView webView;
+    private final Runnable checkUpdates;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private WebMessagePort port;
     private volatile int generation;
@@ -37,8 +38,8 @@ public final class MediaBridge {
     private File partial;
     private FileOutputStream stream;
 
-    public MediaBridge(Activity activity, WebView webView) {
-        this.activity = activity; this.webView = webView;
+    public MediaBridge(Activity activity, WebView webView, Runnable checkUpdates) {
+        this.activity = activity; this.webView = webView; this.checkUpdates = checkUpdates;
         io.execute(new Runnable() { @Override public void run() { try { prune(0); } catch (IOException ignored) {} } });
     }
     public void disconnect() {
@@ -101,6 +102,10 @@ public final class MediaBridge {
     }
     private void handle(JSONObject command, final int current) throws Exception {
         String op = command.getString("op");
+        if ("check-update".equals(op)) {
+            webView.post(() -> { if (current == generation) checkUpdates.run(); });
+            return;
+        }
         String requested = command.getString("session");
         if (!requested.matches("[a-f0-9-]{36}")) throw new IOException("Invalid session");
         if ("begin".equals(op)) {

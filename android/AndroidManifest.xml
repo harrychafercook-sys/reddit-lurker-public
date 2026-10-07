@@ -2,10 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.harry.redditlurker">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <application android:label="Reddit Lurker" android:icon="@drawable/icon"
         android:theme="@style/AppTheme" android:allowBackup="false"
         android:usesCleartextTraffic="false" android:debuggable="false">
         <provider android:name=".SharedMediaProvider" android:authorities="com.harry.redditlurker.media"
+            android:exported="false" android:grantUriPermissions="true" />
+        <provider android:name=".UpdateApkProvider" android:authorities="com.harry.redditlurker.updates"
             android:exported="false" android:grantUriPermissions="true" />
         <activity android:name=".MainActivity" android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize"

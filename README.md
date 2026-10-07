@@ -4,7 +4,7 @@ A personal, read-only Reddit reader with an installable web app and an Android
 WebView wrapper. It displays public subreddit feeds, posts, comments and linked
 media, with sorting, favourites and bounded offline caches.
 
-This repository is a fresh source snapshot of version 7.5.3. It contains no
+This repository began as a fresh source snapshot and now includes version 7.6.1. It contains no
 private development history, account settings, deployment credentials or
 site-specific SSH deployment scripts.
 
@@ -40,12 +40,33 @@ respective providers.
 
 ## Android
 
-`scripts/build-android.ps1` builds the hosted WebView wrapper using an Android
-SDK, Java and a local signing keystore. The wrapper currently points to
-https://rlurker.english-grammar-homework.com/index.html. If you host your own
-copy, update the hosted URL and origin checks consistently in the Android
-source and `native-media.js` before building. No personal settings or signing
-keystore are bundled in this source snapshot.
+`scripts/build-android.ps1` builds the Android app using an Android SDK, Java and
+a local signing keystore. All HTML, CSS, JavaScript and icons are packaged in
+the APK and render offline. Reddit data and the PHP media helpers still need
+network access. The existing HTTPS origin is retained for saved settings, but
+app files are intercepted and served locally, with no hosted asset fallback.
+
+The More modal shows the version and Check for updates. The native updater
+checks the server's `latest.json`, offers a newer APK, verifies its size,
+SHA-256 checksum, package, version and signing certificate, then opens Android's
+installer. Installation requires Android approval and, on first use, permission
+to install updates from this app. Failed checks do not block reading.
+
+The build produces a versioned APK and matching update manifest in ignored
+`artifacts/`. Future releases require a version bump and a new signed APK using
+the same keystore. Host versioned APKs with immutable caching and atomically
+publish their matching manifest as `latest.json` with no-store caching. The
+hosting publication script remains private; download headers are supplied in
+`deploy/android-downloads.htaccess`.
+
+For your own deployment, configure the origins and update URLs in `LocalAssets`,
+`MediaBridge`, `UpdateSpec` and `native-media.js` consistently. No personal
+settings or signing keystore are bundled in this source snapshot.
+
+`pwsh -File scripts/test-android.ps1 -Device <adb-serial>` tests packaged assets
+and offline rendering on an installed APK. `-CheckDownload` additionally tests
+the native download and verification path when the server offers a newer APK.
+The script removes its temporary test runner afterwards and preserves app data.
 
 ## Validation
 

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.harry.redditlurker.tests">
+    <application android:label="Reddit Lurker Tests" />
+    <instrumentation android:name="com.harry.redditlurker.tests.AndroidSmokeTests" android:targetPackage="com.harry.redditlurker" />
+</manifest>

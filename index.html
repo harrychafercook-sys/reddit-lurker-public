@@ -16,7 +16,7 @@
     <div id="root"></div>
     <script src="{{BUNDLE}}"></script>
     <script>
-        if ('serviceWorker' in navigator) {
+        if (!window.__REDDIT_LURKER_NATIVE__ && 'serviceWorker' in navigator) {
             let hadController = !!navigator.serviceWorker.controller;
             let reloading = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {

@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.webkit.ServiceWorkerController;
+import android.webkit.ServiceWorkerClient;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -36,8 +37,9 @@ import java.nio.charset.StandardCharsets;
 import org.json.JSONObject;
 
 public class MainActivity extends Activity {
-    private static final String HOST = "rlurker.english-grammar-homework.com";
-    private static final String START_URL = "https://" + HOST + "/index.html";
+    private static final String HOST = LocalAssets.HOST;
+    private static final String START_URL = LocalAssets.START_URL;
+    private static final String BOOTSTRAP_URL = "https://" + HOST + "/native-bootstrap.html";
     private static final String LEGACY_URL = "https://appassets.androidplatform.net/migrate-settings.html";
     private static final String MIGRATION_PAGE = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'></head><body style='background:#0f172a;color:white;font-family:sans-serif'>Updating Reddit Lurker…</body></html>";
     private WebView webView;
@@ -51,6 +53,8 @@ public class MainActivity extends Activity {
     private boolean clearInitialHistory = true;
     private View connectionError;
     private MediaBridge mediaBridge;
+    private LocalAssets localAssets;
+    private AppUpdater updater;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -63,7 +67,9 @@ public class MainActivity extends Activity {
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(15, 23, 42));
         webView = new WebView(this);
-        mediaBridge = new MediaBridge(this, webView);
+        localAssets = new LocalAssets(getAssets());
+        updater = new AppUpdater(this);
+        mediaBridge = new MediaBridge(this, webView, () -> updater.check(true));
         webView.setBackgroundColor(Color.rgb(15, 23, 42));
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
@@ -88,7 +94,15 @@ public class MainActivity extends Activity {
         workers.getServiceWorkerWebSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         workers.getServiceWorkerWebSettings().setAllowFileAccess(false);
         workers.getServiceWorkerWebSettings().setAllowContentAccess(false);
+        workers.setServiceWorkerClient(new ServiceWorkerClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                return localAssets.intercept(request);
+            }
+        });
         webView.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return localAssets.intercept(request);
+            }
             @Override public void onPageStarted(WebView view, String url, Bitmap favicon) { mediaBridge.disconnect(); }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -101,7 +115,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 if (continueMigration(url)) return;
-                if (migrationStage == 0 && isHosted(Uri.parse(url))) {
+                if (migrationStage == 0 && START_URL.equals(url)) {
                     applySafeArea();
                     mediaBridge.connect();
                     if (clearInitialHistory) { view.clearHistory(); clearInitialHistory = false; }
@@ -145,14 +159,24 @@ public class MainActivity extends Activity {
             OnBackInvokedDispatcher.PRIORITY_DEFAULT, new OnBackInvokedCallback() {
                 @Override public void onBackInvoked() { navigateBack(); }
             });
-        if (getPreferences(MODE_PRIVATE).getBoolean("hosted_storage_ready", false)) webView.loadUrl(START_URL);
+        if (getPreferences(MODE_PRIVATE).getBoolean("hosted_storage_ready", false)) loadBundledApp();
         else beginMigration();
         root.requestApplyInsets();
     }
 
     private static boolean isHosted(Uri uri) {
-        return "https".equals(uri.getScheme()) && HOST.equals(uri.getHost())
-            && (uri.getPort() == -1 || uri.getPort() == 443);
+        return LocalAssets.isAppOrigin(uri) && ("/".equals(uri.getPath()) || "/index.html".equals(uri.getPath()));
+    }
+
+    private void loadBundledApp() {
+        // Retire the hosted shell's worker before navigation. Preserve credentials,
+        // favourites and bounded content caches at their existing origin.
+        String script = "(async function(){try{" +
+            "if('serviceWorker' in navigator){var r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}" +
+            "if('caches' in window){var n=await caches.keys();await Promise.all(n.filter(x=>x.startsWith('reddit-lurker-shell-%2F-')||x==='reddit-lurker-runtime-%2F').map(x=>caches.delete(x)));}" +
+            "}finally{window.location.replace('" + START_URL + "');}})();";
+        webView.loadDataWithBaseURL(BOOTSTRAP_URL, MIGRATION_PAGE.replace("</body>", "<script>" + script + "</script></body>"),
+            "text/html", "UTF-8", BOOTSTRAP_URL);
     }
 
     private void beginMigration() {
@@ -205,7 +229,7 @@ public class MainActivity extends Activity {
         pendingSettings = null;
         migrationCode = null;
         migrationStage = 0;
-        webView.loadUrl(START_URL);
+        loadBundledApp();
     }
 
     private void showConnectionError() {
@@ -216,7 +240,7 @@ public class MainActivity extends Activity {
         panel.setPadding(32 + safeLeft, 32 + safeTop, 32 + safeRight, 32 + safeBottom);
         panel.setBackgroundColor(Color.rgb(15, 23, 42));
         TextView message = new TextView(this);
-        message.setText("Reddit Lurker could not connect. Check your connection and try again.");
+        message.setText("Reddit Lurker could not load its installed files. Try again or reinstall the APK.");
         message.setTextColor(Color.WHITE);
         message.setTextSize(18);
         message.setGravity(Gravity.CENTER);
@@ -227,7 +251,7 @@ public class MainActivity extends Activity {
           @Override public void onClick(View view) {
             root.removeView(connectionError);
             connectionError = null;
-            webView.loadUrl(START_URL);
+            loadBundledApp();
           }
         });
         panel.addView(retry);
@@ -265,13 +289,12 @@ public class MainActivity extends Activity {
         super.onResume();
         if (webView != null) {
             webView.onResume();
-            if (migrationStage == 0 && webView.getUrl() != null && isHosted(Uri.parse(webView.getUrl()))) {
-                webView.evaluateJavascript("if('serviceWorker' in navigator){navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{});}", null);
-            }
         }
+        if (updater != null) updater.resume();
     }
     @Override protected void onDestroy() {
         closeFullScreen();
+        updater.destroy();
         mediaBridge.destroy();
         root.removeView(webView);
         webView.destroy();

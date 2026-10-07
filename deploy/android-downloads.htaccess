@@ -1,0 +1,16 @@
+Options -Indexes
+<IfModule mod_mime.c>
+  AddType application/vnd.android.package-archive .apk
+  AddType application/json .json
+</IfModule>
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow"
+  Header always set X-Content-Type-Options "nosniff"
+  <FilesMatch "\.apk$">
+    Header set Content-Disposition "attachment"
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <Files "latest.json">
+    Header set Cache-Control "no-store, max-age=0"
+  </Files>
+</IfModule>

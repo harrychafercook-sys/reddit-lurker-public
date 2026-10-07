@@ -28,6 +28,8 @@ jobs:
           mkdir -p artifacts/native-media-tests
           javac -d artifacts/native-media-tests android/src/com/harry/redditlurker/MediaFile.java tests/native/MediaFileTest.java
           java -cp artifacts/native-media-tests MediaFileTest
+          javac -d artifacts/native-media-tests android/src/com/harry/redditlurker/UpdateSpec.java tests/native/UpdateSpecTest.java
+          java -cp artifacts/native-media-tests UpdateSpecTest
       - uses: actions/upload-artifact@v4
         with:
           name: site

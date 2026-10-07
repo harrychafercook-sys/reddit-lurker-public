@@ -3,7 +3,7 @@ import { MAX_EXPORT_BYTES } from './video-export.js';
 let channel = null;
 let channelVersion = 0;
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
-export const NATIVE_APP_DOWNLOAD = 'https://english-grammar-homework.com/rlurker-downloads/Reddit-Lurker-7.5.2.apk';
+export const NATIVE_APP_DOWNLOAD = 'https://english-grammar-homework.com/rlurker-downloads/Reddit-Lurker-7.6.1.apk';
 let transferring = false;
 let sequence = 0;
 const pending = new Map();
@@ -47,6 +47,8 @@ function request(command) {
         catch (error) { clearTimeout(timer); pending.delete(id); reject(error); }
     });
 }
+
+export const checkAndroidUpdates = () => request({ op: 'check-update' });
 
 export async function transferToAndroid(file, action, { signal, onProgress = () => {} } = {}, send = request) {
     if (!['share', 'download'].includes(action) || !['video/mp4', ...IMAGE_TYPES].includes(file.type) || !file.size || file.size > MAX_EXPORT_BYTES) throw new Error('Unsupported file export.');

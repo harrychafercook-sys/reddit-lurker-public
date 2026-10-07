@@ -1,0 +1,21 @@
+{
+  "name": "Reddit Lurker",
+  "short_name": "RedditLurker",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1a202c",
+  "theme_color": "#1a202c",
+  "description": "A simple Reddit client for lurking.",
+  "icons": [
+    {
+      "src": "icons/icon-circular-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-circular-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

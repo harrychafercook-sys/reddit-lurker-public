@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Reddit Lurker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a202c">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="{{STYLESHEET}}">
+</head>
+<body class="bg-slate-900">
+    <div id="root"></div>
+    <script src="{{BUNDLE}}"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            let hadController = !!navigator.serviceWorker.controller;
+            let reloading = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hadController && !reloading) {
+                    reloading = true;
+                    window.location.reload();
+                }
+                hadController = true;
+            });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(registration => {
+                    // Pick up deployments both after resuming and during a long open session.
+                    const checkForUpdate = () => {
+                        if (document.visibilityState === 'visible') registration.update().catch(() => {});
+                    };
+                    document.addEventListener('visibilitychange', checkForUpdate);
+                    window.setInterval(checkForUpdate, 60000);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
